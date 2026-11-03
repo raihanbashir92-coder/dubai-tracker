@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dubai trip tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDEFEC;--panel:#FFFFFF;--ink:#18202B;--muted:#5D6772;--line:#D8DCD7;
+  --gold:#9C7128;--done:#2E6A61;--miss:#A3472E;
+  --soft:rgba(24,32,43,.045);--track:rgba(24,32,43,.09);--miss-soft:rgba(163,71,46,.14);
+  --c-faith:#1E8A5A;--c-health:#D0622A;--c-sales:#2D63C8;--c-nexas:#7A4CC2;
+  --c-networking:#C23B7A;--c-content:#0F8FA0;--c-personal:#6B7280;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#10141A;--panel:#171D25;--ink:#E9E7E1;--muted:#9AA3AD;--line:#2A323D;
+    --gold:#D4A85C;--done:#66B5A8;--miss:#E38C70;
+    --soft:rgba(233,231,225,.04);--track:rgba(233,231,225,.10);--miss-soft:rgba(227,140,112,.16);
+    --c-faith:#4CC38A;--c-health:#F08A4B;--c-sales:#7AA3F2;--c-nexas:#AE91EE;
+    --c-networking:#EE7BAE;--c-content:#4CC6D4;--c-personal:#9CA3AF;
+    color-scheme:dark;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 24px 40px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px}
+h1,h2,h3{font-family:var(--serif);font-weight:500;margin:0;letter-spacing:-.01em}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Header */
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+header.top h1{font-size:64px;line-height:1;font-weight:500}
+header.top .sub{margin-top:8px;color:var(--muted);font-size:16px}
+.overall{text-align:right}
+.overall .pct{font-family:var(--serif);font-size:56px;line-height:1;font-weight:500}
+.overall .pct span{font-size:28px;color:var(--muted)}
+.overall .line{color:var(--muted);margin-top:6px}
+.overall .catch{color:var(--miss);font-weight:600}
+
+/* Day strip */
+.strip-panel{padding:16px 16px 12px}
+.strip{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin;scroll-snap-type:x proximity}
+.day{flex:0 0 auto;width:54px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 10px;border-radius:12px;border:1px solid transparent;scroll-snap-align:start;position:relative}
+.day:hover{background:var(--soft)}
+.day .wd{font-size:12px;color:var(--muted)}
+.day .dn{font-family:var(--serif);font-size:22px;line-height:1.1;font-weight:500;padding-bottom:1px;border-bottom:2px solid transparent}
+.day.today .dn{border-bottom-color:var(--gold)}
+.day .ev{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.day .ev.none{background:transparent}
+.day .bar{width:6px;height:36px;border-radius:3px;background:var(--track);position:relative;overflow:hidden;margin-top:4px}
+.day .bar i{position:absolute;left:0;right:0;bottom:0;background:var(--done);border-radius:3px;transition:height .45s ease}
+.day.missed .bar{background:var(--miss-soft)}
+.day.missed .bar i{background:var(--miss)}
+.day.sel{background:var(--ink);color:var(--bg)}
+.day.sel .wd{color:var(--bg);opacity:.75}
+.day.sel .bar{background:rgba(128,128,128,.35)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--muted);padding:6px 4px 2px}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend .sw{width:6px;height:14px;border-radius:3px}
+.legend .dot{width:7px;height:7px;border-radius:50%;background:var(--gold)}
+.legend .ul{width:14px;height:2px;background:var(--gold)}
+
+section{margin-top:20px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px 20px;flex-wrap:wrap;margin-bottom:16px}
+.sec-head h2{font-size:28px}
+.sec-head .meta{color:var(--muted)}
+
+/* Forms */
+.inline{display:flex;gap:8px;flex-wrap:wrap}
+.inline input[type=text]{flex:1 1 180px;min-width:0}
+input[type=text],select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:40px}
+input[type=text]::placeholder{color:var(--muted);opacity:.85}
+input[type=text]:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 16px;font-weight:600;min-height:40px}
+.btn:hover{opacity:.88}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:var(--soft);opacity:1}
+.remove{font-size:13px;color:var(--muted);padding:4px 8px;border-radius:8px;border:1px solid transparent}
+.remove:hover{color:var(--miss)}
+.remove.armed{color:var(--miss);border-color:var(--miss);font-weight:600}
+
+/* Goals */
+.goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.goal{border:1px solid var(--line);border-top:4px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--panel)}
+.goal.s-ip{border-top-color:var(--gold)}
+.goal.s-done{border-top-color:var(--done)}
+.goal h3{font-size:20px;line-height:1.25}
+.seg{display:flex;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{flex:1;font-size:12.5px;padding:5px 6px;border-radius:999px;color:var(--muted);font-weight:600;white-space:nowrap}
+.seg button[aria-pressed=true]{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.seg button.ip[aria-pressed=true]{color:var(--gold)}
+.seg button.dn[aria-pressed=true]{color:var(--done)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.steps li{display:flex;align-items:flex-start;gap:10px;padding:3px 0}
+.steps .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.steps li.done .txt{color:var(--muted);text-decoration:line-through}
+.sq{width:18px;height:18px;border:1.5px solid var(--muted);border-radius:4px;flex:0 0 auto;margin-top:2px;display:grid;place-items:center}
+.sq[aria-pressed=true]{background:var(--done);border-color:var(--done)}
+.sq svg{width:12px;height:12px;stroke:var(--panel)}
+.x{color:var(--muted);font-size:18px;line-height:1;padding:0 4px;border-radius:6px}
+.x:hover{color:var(--miss)}
+.goal .inline input[type=text]{min-height:36px;padding:7px 10px}
+.goal .inline .btn{min-height:36px;padding:6px 12px}
+.goal-foot{display:flex;justify-content:flex-end;margin-top:auto}
+
+/* Main grid */
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:start;margin-top:20px}
+.side{display:flex;flex-direction:column;gap:20px}
+.tag{display:inline-block;font-family:var(--sans);font-size:12px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:999px;padding:1px 9px;vertical-align:middle;margin-left:8px;letter-spacing:0}
+.group{margin-top:18px}
+.group h4{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px}
+.empty{color:var(--muted);font-size:14px;padding:10px 0}
+
+.task{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 14px 12px 17px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.task::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cc)}
+.tick{width:28px;height:28px;border-radius:50%;border:2px solid var(--cc);display:grid;place-items:center;flex:0 0 auto;transition:background-color .15s}
+.tick svg{width:14px;height:14px;stroke:var(--panel);opacity:0}
+.tick[aria-pressed=true]{background:var(--cc)}
+.tick[aria-pressed=true] svg{opacity:1}
+.tick:hover{background:color-mix(in srgb,var(--cc) 14%,transparent)}
+.tick[aria-pressed=true]:hover{background:var(--cc)}
+.t-title{font-weight:600;overflow-wrap:anywhere}
+.task.is-done .t-title{color:var(--muted)}
+.t-meta{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:13px;margin-top:1px}
+.t-cat{color:var(--cc);font-weight:600}
+.t-time{color:var(--gold);font-weight:600}
+.t-ev{color:var(--gold);display:inline-flex;align-items:center;gap:6px}
+.t-ev::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.t-extra{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.pills{display:flex;gap:4px;flex-wrap:wrap}
+.pill{font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pill:hover{border-color:var(--cc)}
+.pill[aria-pressed=true]{background:var(--cc);border-color:var(--cc);color:var(--panel)}
+.counter{display:flex;align-items:center;gap:4px}
+.counter button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);font-size:17px;line-height:1;display:grid;place-items:center}
+.counter button:hover{border-color:var(--cc)}
+.counter output{min-width:58px;text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+.addtask{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.addtask h4{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--muted)}
+.addtask .row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px}
+.addtask label{display:contents}
+
+/* Catch up */
+.catch-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.catch-list li{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.catch-list li:first-child{border-top:0}
+.catch-list .tick{width:22px;height:22px;border-width:2px}
+.catch-list .when{font-size:12.5px;color:var(--muted);white-space:nowrap;min-width:60px}
+.catch-list .what{flex:1;min-width:0;overflow-wrap:anywhere}
+.catch-list .part{color:var(--muted);font-size:13px}
+.more{color:var(--muted);font-size:13.5px;padding-top:10px;border-top:1px solid var(--line)}
+
+/* Task by task */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+.chip b{color:var(--cc);font-weight:700}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--cc)}
+.tbt{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.tbt .hd{display:flex;align-items:baseline;gap:8px;justify-content:space-between;flex-wrap:wrap}
+.tbt .nm{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;min-width:0}
+.tbt .nm i{width:8px;height:8px;border-radius:50%;background:var(--cc);flex:0 0 auto}
+.tbt .nm span{overflow-wrap:anywhere}
+.tbt .st{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.tbt .st .m{color:var(--miss)}
+.split{display:flex;height:6px;border-radius:3px;background:var(--track);overflow:hidden;margin-top:6px}
+.split .d{background:var(--cc)}
+.split .m{background:var(--miss)}
+
+footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;margin-top:28px;color:var(--muted);font-size:13px}
+#save.err{color:var(--miss)}
+
+@media (max-width:900px){
+  .grid{grid-template-columns:1fr}
+}
+@media (max-width:600px){
+  .wrap{padding:22px 16px 32px}
+  header.top{align-items:flex-start}
+  header.top h1{font-size:52px}
+  .overall{text-align:left}
+  .overall .pct{font-size:44px}
+  .panel{padding:18px 16px}
+  .sec-head h2{font-size:24px}
+  .task{grid-template-columns:auto minmax(0,1fr)}
+  .t-extra{grid-column:2 / -1;justify-content:flex-start}
+  .addtask .row{grid-template-columns:1fr 1fr}
+  .addtask .row input{grid-column:1 / -1}
+  .addtask .row .btn{grid-column:1 / -1}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Dubai</h1>
+      <div class="sub">Work trip, 5 – 30 November 2026</div>
+    </div>
+    <div class="overall" id="overall" aria-live="polite"></div>
+  </header>
+
+  <div class="panel strip-panel">
+    <div class="strip" id="strip" role="list" aria-label="Trip days"></div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="sw" style="background:var(--done)"></i>Day progress</span>
+      <span><i class="sw" style="background:var(--miss)"></i>Past and unfinished</span>
+      <span><i class="dot"></i>Event</span>
+      <span><i class="ul"></i>Today</span>
+    </div>
+  </div>
+
+  <section class="panel" id="goals-panel" aria-labelledby="goals-h"></section>
+
+  <div class="grid">
+    <section class="panel" id="day-panel" style="margin-top:0" aria-live="polite"></section>
+    <div class="side">
+      <section class="panel" id="catch-panel" style="margin-top:0" aria-labelledby="catch-h"></section>
+      <section class="panel" id="tbt-panel" style="margin-top:0" aria-labelledby="tbt-h"></section>
+    </div>
+  </div>
+
+  <footer>
+    <span id="save" role="status">Saved on this device</span>
+    <span>Times shown in UK and Dubai time (Dubai is 4 hours ahead in November).</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var KEY = 'dubai-tracker-v1';
+var CATS = [
+  ['Faith','faith'],['Health','health'],['Sales','sales'],['Nexas Systems','nexas'],
+  ['Networking','networking'],['Content','content'],['Personal','personal']
+];
+var CAT_SLUG = {};
+CATS.forEach(function(c){ CAT_SLUG[c[0]] = c[1]; });
+function cc(cat){ return 'var(--c-' + (CAT_SLUG[cat] || 'personal') + ')'; }
+
+var BUILTIN = [
+  {id:'salah', title:'Salah', cat:'Faith', sched:{type:'daily'}, labels:['Fajr','Dhuhr','Asr','Maghrib','Isha']},
+  {id:'quran', title:'Read 1 page of the Quran', cat:'Faith', sched:{type:'daily'}},
+  {id:'gym', title:'Gym', cat:'Health', sched:{type:'daily'}},
+  {id:'partner', title:'Sales calls with partner', cat:'Sales', sched:{type:'daily'}},
+  {id:'cash', title:'Build cash system software', cat:'Nexas Systems', sched:{type:'daily'}},
+  {id:'email', title:'Email 15 businesses', cat:'Nexas Systems', sched:{type:'daily'}, target:15},
+  {id:'salescall', title:'Sales call (1 hour)', cat:'Sales', sched:{type:'weekly', days:[2,4]}, time:'6pm UK, 10pm Dubai'},
+  {id:'content', title:'Create content', cat:'Content', sched:{type:'weekly', days:[6]}},
+  {id:'editing', title:'Edit all content', cat:'Content', sched:{type:'weekly', days:[0]}},
+  {id:'ev-claude', title:'Claude conference', cat:'Networking', sched:{type:'date', date:'2026-11-05'}, event:true},
+  {id:'ev-network', title:'Business networking event', cat:'Networking', sched:{type:'date', date:'2026-11-11'}, event:true},
+  {id:'ev-ai', title:'Dubai AI meetup', cat:'Networking', sched:{type:'date', date:'2026-11-14'}, event:true},
+  {id:'zoom', title:'Zoom call with co-founder from Sri Lanka', cat:'Networking', sched:{type:'anytime'}}
+];
+
+var DEFAULT_GOALS = [
+  'Land a potential client',
+  'Network with people who can help my business grow',
+  "Have a clear roadmap for when I'm back in London",
+  'Seek opportunities in work'
+];
+
+var WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var WDL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// Trip days built in UTC so weekdays never drift with the local time zone
+var DAYS = [];
+for (var i = 0; i < 26; i++) {
+  var d = new Date(Date.UTC(2026, 10, 5 + i));
+  DAYS.push({key:d.toISOString().slice(0,10), dow:d.getUTCDay(), date:d.getUTCDate()});
+}
+var START = DAYS[0].key, END = DAYS[DAYS.length-1].key;
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+var now = new Date();
+var TODAY = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
+function dayByKey(k){ for (var i=0;i<DAYS.length;i++) if (DAYS[i].key === k) return DAYS[i]; return null; }
+function longDate(day){ return WDL[day.dow] + ' ' + day.date + ' November'; }
+function shortDate(day){ return WD[day.dow] + ' ' + day.date + ' Nov'; }
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+/* ---------- State ---------- */
+function defaultState(){
+  return {
+    v:1, p:{}, ad:{}, custom:[],
+    goals: DEFAULT_GOALS.map(function(t, i){ return {id:'g'+(i+1), title:t, status:'ns', steps:[]}; })
+  };
+}
+function load(){
+  var s = null;
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) s = JSON.parse(raw);
+  } catch (e) { s = null; }
+  var base = defaultState();
+  if (!s || typeof s !== 'object') return base;
+  return {
+    v:1,
+    p: (s.p && typeof s.p === 'object') ? s.p : {},
+    ad: (s.ad && typeof s.ad === 'object') ? s.ad : {},
+    custom: Array.isArray(s.custom) ? s.custom.filter(function(t){ return t && t.id && t.title && t.sched; }) : [],
+    goals: Array.isArray(s.goals) ? s.goals.filter(function(g){ return g && g.id; }).map(function(g){
+      return {id:g.id, title:String(g.title||''), status:['ns','ip','done'].indexOf(g.status) >= 0 ? g.status : 'ns',
+              steps:Array.isArray(g.steps) ? g.steps.filter(Boolean) : []};
+    }) : base.goals
+  };
+}
+var state = load();
+var saveEl = document.getElementById('save');
+function save(){
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    var t = new Date();
+    saveEl.textContent = 'All changes saved at ' + pad(t.getHours()) + ':' + pad(t.getMinutes());
+    saveEl.className = '';
+  } catch (e) {
+    saveEl.textContent = "Couldn't save. Your browser is blocking storage, so changes will be lost on reload.";
+    saveEl.className = 'err';
+  }
+}
+
+/* ---------- Task logic ---------- */
+function allTasks(){ return BUILTIN.concat(state.custom); }
+function findTask(id){ var a = allTasks(); for (var i=0;i<a.length;i++) if (a[i].id === id) return a[i]; return null; }
+function appliesOn(t, day){
+  var s = t.sched;
+  if (s.type === 'daily') return !s.from || day.key >= s.from;
+  if (s.type === 'weekly') return (s.days || []).indexOf(day.dow) >= 0;
+  if (s.type === 'date') return s.date === day.key;
+  return false;
+}
+function target(t){ return t.labels ? t.labels.length : (t.target || 1); }
+function full(t){ return t.labels ? (1 << t.labels.length) - 1 : target(t); }
+function pkey(t, dayKey){ return t.sched.type === 'anytime' ? 'any|' + t.id : dayKey + '|' + t.id; }
+function raw(k){ var v = state.p[k]; return typeof v === 'number' ? v : 0; }
+function bits(v){ var c = 0; while (v) { c += v & 1; v >>= 1; } return c; }
+function count(t, k){ var v = raw(k); return t.labels ? bits(v) : Math.min(v, target(t)); }
+function isDone(t, k){ return count(t, k) >= target(t); }
+function setRaw(k, v){ if (v > 0) state.p[k] = v; else delete state.p[k]; }
+function anytimeShownOn(t, day){
+  if (!isDone(t, pkey(t))) return true;
+  var at = state.ad[t.id];
+  return !at || day.key <= at;
+}
+
+function computeStats(){
+  var tasks = allTasks();
+  var per = {}, perDay = {}, perCat = {}, catchList = [];
+  var total = 0, done = 0;
+  tasks.forEach(function(t){ per[t.id] = {t:t, total:0, done:0, missed:0, left:0}; });
+  DAYS.forEach(function(day){
+    var dd = {total:0, done:0};
+    tasks.forEach(function(t){
+      if (!appliesOn(t, day)) return;
+      var k = pkey(t, day.key), ok = isDone(t, k), r = per[t.id];
+      dd.total++; r.total++; total++;
+      if (ok) { dd.done++; r.done++; done++; }
+      else if (day.key < TODAY) { r.missed++; catchList.push({day:day, t:t, k:k}); }
+      else r.left++;
+    });
+    perDay[day.key] = dd;
+  });
+  tasks.forEach(function(t){
+    if (t.sched.type !== 'anytime') return;
+    var r = per[t.id], ok = isDone(t, pkey(t));
+    r.total = 1; total++;
+    if (ok) { r.done = 1; done++; } else r.left = 1;
+  });
+  tasks.forEach(function(t){
+    var r = per[t.id];
+    if (!r.total) return;
+    var c = perCat[t.cat] || (perCat[t.cat] = {total:0, done:0});
+    c.total += r.total; c.done += r.done;
+  });
+  return {total:total, done:done, per:per, perDay:perDay, perCat:perCat, catchList:catchList};
+}
+
+/* ---------- UI state ---------- */
+var selected = TODAY < START ? START : (TODAY > END ? END : TODAY);
+var armed = null; // {id, timer} for two-step remove buttons
+function arm(id){
+  if (armed) clearTimeout(armed.timer);
+  armed = {id:id, timer:setTimeout(function(){ armed = null; render(); }, 3000)};
+}
+function isArmed(id){ return armed && armed.id === id; }
+
+var CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+
+/* ---------- Render ---------- */
+function renderOverall(st){
+  var pct = st.total ? Math.round(st.done / st.total * 100) : 0;
+  var n = st.catchList.length;
+  document.getElementById('overall').innerHTML =
+    '<div class="pct">' + pct + '<span>%</span></div>' +
+    '<div class="line">' + st.done + ' of ' + st.total + ' tasks done</div>' +
+    (n ? '<div class="catch">' + n + ' to catch up on</div>' : '<div class="line">Nothing to catch up on</div>');
+}
+
+function renderStrip(st){
+  var strip = document.getElementById('strip');
+  var events = {};
+  allTasks().forEach(function(t){ if (t.event && t.sched.date) events[t.sched.date] = true; });
+  strip.innerHTML = DAYS.map(function(day){
+    var dd = st.perDay[day.key], frac = dd.total ? dd.done / dd.total : 0;
+    var missed = day.key < TODAY && dd.done < dd.total;
+    var cls = 'day' + (day.key === selected ? ' sel' : '') + (day.key === TODAY ? ' today' : '') + (missed ? ' missed' : '');
+    var label = longDate(day) + ', ' + dd.done + ' of ' + dd.total + ' done' + (events[day.key] ? ', event day' : '') + (day.key === TODAY ? ', today' : '');
+    return '<button class="' + cls + '" role="listitem" data-act="day" data-day="' + day.key + '" data-fk="day-' + day.key + '" aria-label="' + esc(label) + '"' + (day.key === selected ? ' aria-current="date"' : '') + '>' +
+      '<span class="wd">' + WD[day.dow] + '</span>' +
+      '<span class="dn">' + day.date + '</span>' +
+      '<span class="ev' + (events[day.key] ? '' : ' none') + '"></span>' +
+      '<span class="bar"><i style="height:' + (frac * 100).toFixed(1) + '%"></i></span>' +
+    '</button>';
+  }).join('');
+}
+
+function renderGoals(){
+  var g = state.goals;
+  var ach = g.filter(function(x){ return x.status === 'done'; }).length;
+  var ip = g.filter(function(x){ return x.status === 'ip'; }).length;
+  var html =
+    '<div class="sec-head"><div><h2 id="goals-h">Goals for this trip</h2>' +
+    '<div class="meta">' + ach + ' of ' + g.length + ' achieved, ' + ip + ' in progress</div></div>' +
+    '<form class="inline" data-form="goal" style="flex:1 1 280px;max-width:420px">' +
+      '<label class="sr" for="new-goal">New goal</label>' +
+      '<input type="text" id="new-goal" data-fk="new-goal" placeholder="Add another goal" maxlength="140" autocomplete="off">' +
+      '<button class="btn ghost" type="submit">Add goal</button>' +
+    '</form></div>';
+  if (!g.length) html += '<div class="empty">No goals yet. Add one above.</div>';
+  html += '<div class="goals">' + g.map(function(goal){
+    var segs = [['ns','Not started',''],['ip','In progress','ip'],['done','Achieved','dn']].map(function(s){
+      return '<button type="button" class="' + s[2] + '" data-act="gstatus" data-g="' + esc(goal.id) + '" data-s="' + s[0] + '" data-fk="gs-' + esc(goal.id) + '-' + s[0] + '" aria-pressed="' + (goal.status === s[0]) + '">' + s[1] + '</button>';
+    }).join('');
+    var steps = goal.steps.map(function(s){
+      return '<li class="' + (s.done ? 'done' : '') + '">' +
+        '<button class="sq" data-act="step" data-g="' + esc(goal.id) + '" data-s="' + esc(s.id) + '" data-fk="st-' + esc(s.id) + '" aria-pressed="' + !!s.done + '" aria-label="' + esc((s.done ? 'Mark not done: ' : 'Mark done: ') + s.text) + '">' + (s.done ? CHECK : '') + '</button>' +
+        '<span class="txt">' + esc(s.text) + '</span>' +
+        '<button class="x" data-act="delstep" data-g="' + esc(goal.id) + '" data-s="' + esc(s.id) + '" aria-label="' + esc('Delete ' + s.text) + '">×</button>' +
+      '</li>';
+    }).join('');
+    var rmArmed = isArmed('goal-' + goal.id);
+    return '<article class="goal s-' + goal.status + '">' +
+      '<h3>' + esc(goal.title) + '</h3>' +
+      '<div class="seg" role="group" aria-label="Status">' + segs + '</div>' +
+      (steps ? '<ul class="steps">' + steps + '</ul>' : '') +
+      '<form class="inline" data-form="step" data-g="' + esc(goal.id) + '">' +
+        '<label class="sr" for="step-' + esc(goal.id) + '">Add a step, lead or win</label>' +
+        '<input type="text" id="step-' + esc(goal.id) + '" data-fk="step-' + esc(goal.id) + '" placeholder="Add a step, lead or win" maxlength="200" autocomplete="off">' +
+        '<button class="btn ghost" type="submit">Add</button>' +
+      '</form>' +
+      '<div class="goal-foot"><button class="remove' + (rmArmed ? ' armed' : '') + '" data-act="rmgoal" data-g="' + esc(goal.id) + '" data-fk="rmg-' + esc(goal.id) + '">' + (rmArmed ? 'Remove goal?' : 'Remove') + '</button></div>' +
+    '</article>';
+  }).join('') + '</div>';
+  document.getElementById('goals-panel').innerHTML = html;
+}
+
+function taskRow(t, dayKey){
+  var k = pkey(t, dayKey), v = raw(k), c = count(t, k), tg = target(t), ok = c >= tg;
+  var meta = '<span class="t-cat">' + esc(t.cat) + '</span>';
+  if (t.time) meta += '<span class="t-time">' + esc(t.time) + '</span>';
+  if (t.event) meta += '<span class="t-ev">Event</span>';
+  var extra = '';
+  if (t.labels) {
+    extra = '<div class="pills" role="group" aria-label="' + esc(t.title) + ' prayers">' + t.labels.map(function(l, i){
+      var on = (v >> i) & 1;
+      return '<button class="pill" data-act="bit" data-k="' + esc(k) + '" data-t="' + esc(t.id) + '" data-bit="' + i + '" data-fk="b-' + esc(k) + '-' + i + '" aria-pressed="' + !!on + '">' + esc(l) + '</button>';
+    }).join('') + '</div>';
+  } else if (tg > 1) {
+    extra = '<div class="counter">' +
+      '<button data-act="inc" data-d="-1" data-k="' + esc(k) + '" data-t="' + esc(t.id) + '" data-fk="dec-' + esc(k) + '" aria-label="One fewer">−</button>' +
+      '<output aria-live="polite">' + c + ' / ' + tg + '</output>' +
+      '<button data-act="inc" data-d="1" data-k="' + esc(k) + '" data-t="' + esc(t.id) + '" data-fk="inc-' + esc(k) + '" aria-label="One more">+</button>' +
+    '</div>';
+  }
+  if (t.custom) {
+    var a = isArmed('task-' + t.id);
+    extra += '<button class="remove' + (a ? ' armed' : '') + '" data-act="rmtask" data-t="' + esc(t.id) + '" data-fk="rmt-' + esc(t.id) + '">' + (a ? 'Remove task?' : 'Remove') + '</button>';
+  }
+  return '<div class="task' + (ok ? ' is-done' : '') + '" style="--cc:' + cc(t.cat) + '">' +
+    '<button class="tick" data-act="tick" data-k="' + esc(k) + '" data-t="' + esc(t.id) + '" data-day="' + dayKey + '" data-fk="tick-' + esc(k) + '" aria-pressed="' + ok + '" aria-label="' + esc((ok ? 'Mark not done: ' : 'Mark done: ') + t.title) + '">' + CHECK + '</button>' +
+    '<div><div class="t-title">' + esc(t.title) + '</div><div class="t-meta">' + meta + '</div></div>' +
+    (extra ? '<div class="t-extra">' + extra + '</div>' : '') +
+  '</div>';
+}
+
+function renderDay(st){
+  var day = dayByKey(selected), tasks = allTasks();
+  var sched = tasks.filter(function(t){ return (t.sched.type === 'weekly' || t.sched.type === 'date') && appliesOn(t, day); });
+  var daily = tasks.filter(function(t){ return t.sched.type === 'daily' && appliesOn(t, day); });
+  var any = tasks.filter(function(t){ return t.sched.type === 'anytime' && anytimeShownOn(t, day); });
+  var dd = st.perDay[day.key];
+  function group(title, list, emptyMsg){
+    return '<div class="group"><h4>' + title + '</h4>' +
+      (list.length ? '<div class="list">' + list.map(function(t){ return taskRow(t, day.key); }).join('') + '</div>' : '<div class="empty">' + emptyMsg + '</div>') +
+    '</div>';
+  }
+  var opts = CATS.map(function(c){ return '<option>' + c[0] + '</option>'; }).join('');
+  document.getElementById('day-panel').innerHTML =
+    '<div class="sec-head" style="margin-bottom:0"><h2>' + longDate(day) + (day.key === TODAY ? '<span class="tag">Today</span>' : '') + '</h2>' +
+    '<div class="meta">' + dd.done + ' of ' + dd.total + ' done</div></div>' +
+    group('Scheduled', sched, 'Nothing scheduled for this day.') +
+    group('Every day', daily, 'No daily tasks.') +
+    group('Anytime this trip', any, 'All anytime tasks are done.') +
+    '<form class="addtask" data-form="task"><h4>Add a task</h4><div class="row">' +
+      '<label><span class="sr">Task title</span><input type="text" data-fk="nt-title" name="title" placeholder="What do you need to do?" maxlength="140" autocomplete="off"></label>' +
+      '<label><span class="sr">When</span><select name="when" data-fk="nt-when" aria-label="When">' +
+        '<option value="date">This day only</option><option value="daily">Every day</option><option value="anytime">Anytime this trip</option></select></label>' +
+      '<label><span class="sr">Category</span><select name="cat" data-fk="nt-cat" aria-label="Category">' + opts + '</select></label>' +
+      '<button class="btn" type="submit">Add</button>' +
+    '</div></form>';
+}
+
+function renderCatch(st){
+  var list = st.catchList, html = '<div class="sec-head" style="margin-bottom:10px"><h2 id="catch-h">Catch up</h2>' +
+    (list.length ? '<div class="meta">' + list.length + ' unfinished</div>' : '') + '</div>';
+  if (TODAY < START) {
+    html += '<p class="empty" style="margin:0">Your trip starts on Thursday 5 November. Anything you miss will show up here so you can catch up.</p>';
+  } else if (!list.length) {
+    html += '<p class="empty" style="margin:0">You’re all caught up.</p>';
+  } else {
+    html += '<ul class="catch-list">' + list.slice(0, 40).map(function(it){
+      var c = count(it.t, it.k), tg = target(it.t);
+      return '<li style="--cc:' + cc(it.t.cat) + '">' +
+        '<button class="tick" data-act="tick" data-k="' + esc(it.k) + '" data-t="' + esc(it.t.id) + '" data-day="' + it.day.key + '" aria-pressed="false" aria-label="' + esc('Mark done: ' + it.t.title + ', ' + shortDate(it.day)) + '">' + CHECK + '</button>' +
+        '<span class="when">' + shortDate(it.day) + '</span>' +
+        '<span class="what">' + esc(it.t.title) + (c > 0 ? ' <span class="part">(' + c + ' of ' + tg + ')</span>' : '') + '</span>' +
+      '</li>';
+    }).join('') + '</ul>';
+    if (list.length > 40) html += '<div class="more">And ' + (list.length - 40) + ' more</div>';
+  }
+  document.getElementById('catch-panel').innerHTML = html;
+}
+
+function renderTbt(st){
+  var chips = CATS.filter(function(c){ return st.perCat[c[0]]; }).map(function(c){
+    var pc = st.perCat[c[0]], pct = pc.total ? Math.round(pc.done / pc.total * 100) : 0;
+    return '<span class="chip" style="--cc:' + cc(c[0]) + '"><i></i>' + c[0] + ' <b>' + pct + '%</b></span>';
+  }).join('');
+  var rows = Object.keys(st.per).map(function(id){ return st.per[id]; }).filter(function(r){ return r.total; });
+  rows.sort(function(a, b){ return b.missed - a.missed || (b.left - a.left) || a.t.title.localeCompare(b.t.title); });
+  var html = '<div class="sec-head" style="margin-bottom:12px"><h2 id="tbt-h">Task by task</h2></div>' +
+    '<div class="chips">' + chips + '</div><ul class="tbt">' + rows.map(function(r){
+      var dw = r.done / r.total * 100, mw = r.missed / r.total * 100;
+      return '<li style="--cc:' + cc(r.t.cat) + '"><div class="hd">' +
+        '<span class="nm"><i></i><span>' + esc(r.t.title) + '</span></span>' +
+        '<span class="st">' + r.done + '/' + r.total + ', ' + (r.missed ? '<span class="m">' + r.missed + ' missed</span>' : '0 missed') + ', ' + r.left + ' left</span></div>' +
+        '<div class="split" aria-hidden="true"><span class="d" style="width:' + dw.toFixed(1) + '%"></span><span class="m" style="width:' + mw.toFixed(1) + '%"></span></div>' +
+      '</li>';
+    }).join('') + '</ul>';
+  document.getElementById('tbt-panel').innerHTML = html;
+}
+
+function render(){
+  // Keep focus, typed-but-unsent input and strip scroll across re-renders
+  var active = document.activeElement, fk = active && active.dataset ? active.dataset.fk : null;
+  var vals = {};
+  document.querySelectorAll('input[data-fk],select[data-fk]').forEach(function(el){ vals[el.dataset.fk] = el.value; });
+  render.clear && render.clear.forEach(function(k){ delete vals[k]; });
+  render.clear = null;
+  var strip = document.getElementById('strip'), sl = strip.scrollLeft;
+
+  var st = computeStats();
+  renderOverall(st); renderStrip(st); renderGoals(); renderDay(st); renderCatch(st); renderTbt(st);
+
+  strip.scrollLeft = sl;
+  document.querySelectorAll('input[data-fk],select[data-fk]').forEach(function(el){
+    if (vals[el.dataset.fk] !== undefined) el.value = vals[el.dataset.fk];
+  });
+  if (fk) {
+    var el = document.querySelector('[data-fk="' + (window.CSS && CSS.escape ? CSS.escape(fk) : fk) + '"]');
+    if (el) el.focus({preventScroll:true});
+  }
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', function(e){
+  var b = e.target.closest('[data-act]');
+  if (!b) return;
+  var act = b.dataset.act, t, k, goal;
+  if (act === 'day') {
+    selected = b.dataset.day;
+    render();
+    return;
+  }
+  if (act === 'tick') {
+    t = findTask(b.dataset.t); k = b.dataset.k;
+    if (!t) return;
+    if (isDone(t, k)) { setRaw(k, 0); if (t.sched.type === 'anytime') delete state.ad[t.id]; }
+    else { setRaw(k, full(t)); if (t.sched.type === 'anytime') state.ad[t.id] = b.dataset.day || selected; }
+  } else if (act === 'bit') {
+    t = findTask(b.dataset.t); k = b.dataset.k;
+    setRaw(k, raw(k) ^ (1 << +b.dataset.bit));
+  } else if (act === 'inc') {
+    t = findTask(b.dataset.t); k = b.dataset.k;
+    setRaw(k, Math.max(0, Math.min(target(t), raw(k) + +b.dataset.d)));
+  } else if (act === 'rmtask') {
+    var id = b.dataset.t;
+    if (!isArmed('task-' + id)) { arm('task-' + id); render(); return; }
+    clearTimeout(armed.timer); armed = null;
+    state.custom = state.custom.filter(function(x){ return x.id !== id; });
+    Object.keys(state.p).forEach(function(pk){ if (pk.split('|')[1] === id) delete state.p[pk]; });
+    delete state.ad[id];
+  } else if (act === 'gstatus') {
+    goal = getGoal(b.dataset.g); if (!goal) return;
+    goal.status = b.dataset.s;
+  } else if (act === 'step') {
+    goal = getGoal(b.dataset.g); if (!goal) return;
+    goal.steps.forEach(function(s){ if (s.id === b.dataset.s) s.done = !s.done; });
+  } else if (act === 'delstep') {
+    goal = getGoal(b.dataset.g); if (!goal) return;
+    goal.steps = goal.steps.filter(function(s){ return s.id !== b.dataset.s; });
+  } else if (act === 'rmgoal') {
+    var gid = b.dataset.g;
+    if (!isArmed('goal-' + gid)) { arm('goal-' + gid); render(); return; }
+    clearTimeout(armed.timer); armed = null;
+    state.goals = state.goals.filter(function(g){ return g.id !== gid; });
+  } else return;
+  save(); render();
+});
+
+function getGoal(id){ for (var i=0;i<state.goals.length;i++) if (state.goals[i].id === id) return state.goals[i]; return null; }
+
+document.addEventListener('submit', function(e){
+  var f = e.target, kind = f.dataset.form;
+  if (!kind) return;
+  e.preventDefault();
+  var input = f.querySelector('input[type=text]'), text = input.value.trim();
+  if (!text) { input.focus(); return; }
+  if (kind === 'goal') {
+    state.goals.push({id:uid('g'), title:text, status:'ns', steps:[]});
+  } else if (kind === 'step') {
+    var goal = getGoal(f.dataset.g); if (!goal) return;
+    goal.steps.push({id:uid('s'), text:text, done:false});
+  } else if (kind === 'task') {
+    var when = f.elements.when.value, cat = f.elements.cat.value, sched;
+    if (CAT_SLUG[cat] === undefined) cat = 'Personal';
+    if (when === 'daily') sched = {type:'daily', from: TODAY > START ? (TODAY > END ? END : TODAY) : START};
+    else if (when === 'anytime') sched = {type:'anytime'};
+    else sched = {type:'date', date:selected};
+    state.custom.push({id:uid('c'), title:text, cat:cat, sched:sched, custom:true});
+  }
+  render.clear = [input.dataset.fk];
+  save(); render();
+  var again = document.querySelector('[data-fk="' + input.dataset.fk + '"]');
+  if (again) again.focus({preventScroll:true});
+});
+
+/* ---------- Boot ---------- */
+render();
+var sel = document.querySelector('.day.sel');
+if (sel) {
+  var strip = document.getElementById('strip');
+  // Keep a couple of earlier days in view so recent misses are visible
+  strip.scrollLeft = Math.max(0, sel.offsetLeft - strip.offsetLeft - 2 * (sel.offsetWidth + 6));
+}
+})();
+</script>
+</body>
+</html>
