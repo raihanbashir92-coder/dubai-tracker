@@ -214,7 +214,7 @@ footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;ma
   <header class="top">
     <div>
       <h1>Dubai</h1>
-      <div class="sub">Work trip, 5 November – 14 December 2026</div>
+      <div class="sub">Work trip, 5 November – 19 December 2026</div>
     </div>
     <div class="overall" id="overall" aria-live="polite"></div>
   </header>
@@ -306,9 +306,9 @@ var WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var WDL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-// Trip days (5 Nov to 14 Dec) built in UTC so weekdays never drift with the local time zone
+// Trip days (5 Nov to 19 Dec) built in UTC so weekdays never drift with the local time zone
 var DAYS = [];
-for (var i = 0; i < 40; i++) {
+for (var i = 0; i < 45; i++) {
   var d = new Date(Date.UTC(2026, 10, 5 + i));
   DAYS.push({key:d.toISOString().slice(0,10), dow:d.getUTCDay(), date:d.getUTCDate(), mon:d.getUTCMonth()});
 }
