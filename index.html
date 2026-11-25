@@ -195,6 +195,18 @@ input[type=text]:focus-visible,select:focus-visible{outline:2px solid var(--gold
 
 footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;margin-top:28px;color:var(--muted);font-size:13px}
 #save.err{color:var(--miss)}
+.transfer{margin-top:20px;padding:16px 22px}
+.transfer summary{cursor:pointer;font-weight:600;color:var(--muted)}
+.transfer[open] summary{color:var(--ink);margin-bottom:14px}
+.transfer-body{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.transfer h4{margin:0 0 4px;font-size:14px;font-weight:600}
+.transfer p{margin:0 0 10px;font-size:13.5px}
+.transfer textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:13px/1.4 ui-monospace,Menlo,monospace;color:var(--ink);resize:vertical;margin-bottom:8px}
+.transfer textarea:focus-visible{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.transfer-msg{font-size:13px;color:var(--muted);align-self:center}
+.transfer-msg.ok{color:var(--done)}
+.transfer-msg.err{color:var(--miss)}
+@media (max-width:700px){ .transfer-body{grid-template-columns:1fr} }
 
 @media (max-width:900px){
   .grid{grid-template-columns:1fr}
@@ -247,6 +259,30 @@ footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;ma
       <section class="panel" id="tbt-panel" style="margin-top:0" aria-labelledby="tbt-h"></section>
     </div>
   </div>
+
+  <details class="panel transfer">
+    <summary>Move your progress to another device or the app</summary>
+    <div class="transfer-body">
+      <div>
+        <h4>1. Copy from the device that has your progress</h4>
+        <p class="muted">Open the tracker where your ticks are saved and tap Copy my data.</p>
+        <div class="inline">
+          <button class="btn" type="button" id="export-btn">Copy my data</button>
+          <span class="transfer-msg" id="export-msg" role="status"></span>
+        </div>
+      </div>
+      <div>
+        <h4>2. Paste it where you want it</h4>
+        <p class="muted">Open the tracker on the other device or in the app, paste below and tap Load data. This replaces the progress on that device.</p>
+        <label class="sr" for="import-box">Data to load</label>
+        <textarea id="import-box" rows="3" placeholder="Paste your data here" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+        <div class="inline">
+          <button class="btn" type="button" id="import-btn">Load data</button>
+          <span class="transfer-msg" id="import-msg" role="status"></span>
+        </div>
+      </div>
+    </div>
+  </details>
 
   <footer>
     <span id="save" role="status">Saved on this device</span>
@@ -358,6 +394,9 @@ function load(){
     var raw = localStorage.getItem(KEY);
     if (raw) s = JSON.parse(raw);
   } catch (e) { s = null; }
+  return normalize(s);
+}
+function normalize(s){
   var base = defaultState();
   if (!s || typeof s !== 'object') return base;
   return {
@@ -713,6 +752,44 @@ document.addEventListener('submit', function(e){
   save(); render();
   var again = document.querySelector('[data-fk="' + input.dataset.fk + '"]');
   if (again) again.focus({preventScroll:true});
+});
+
+/* ---------- Move data between devices ---------- */
+// The data travels as one opaque line of text so notes apps can't mangle the quotes
+var CODE_PREFIX = 'dubai1:';
+function encodeState(){ return CODE_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify(state)))); }
+function decodeCode(text){
+  text = text.trim();
+  if (text.indexOf(CODE_PREFIX) === 0) text = decodeURIComponent(escape(atob(text.slice(CODE_PREFIX.length).replace(/\s+/g, ''))));
+  var s = JSON.parse(text);
+  if (!s || typeof s !== 'object' || (!s.p && !s.goals)) throw new Error('not tracker data');
+  return s;
+}
+function setMsg(el, text, kind){ el.textContent = text; el.className = 'transfer-msg' + (kind ? ' ' + kind : ''); }
+
+document.getElementById('export-btn').addEventListener('click', function(){
+  var code = encodeState(), msg = document.getElementById('export-msg'), box = document.getElementById('import-box');
+  function fallback(){
+    box.value = code; box.focus(); box.select();
+    setMsg(msg, 'Your data is in the box below. Copy it, then paste it on the other device.', '');
+  }
+  try {
+    navigator.clipboard.writeText(code).then(function(){
+      setMsg(msg, 'Copied. Now paste it on the other device or in the app.', 'ok');
+    }, fallback);
+  } catch (e) { fallback(); }
+});
+
+document.getElementById('import-btn').addEventListener('click', function(){
+  var box = document.getElementById('import-box'), msg = document.getElementById('import-msg'), s;
+  if (!box.value.trim()) { setMsg(msg, 'Paste your data in the box first.', 'err'); box.focus(); return; }
+  try { s = decodeCode(box.value); }
+  catch (e) { setMsg(msg, "That doesn't look like tracker data. Copy it again and paste the whole thing.", 'err'); return; }
+  if (!window.confirm('Replace the progress on this device with the pasted data?')) return;
+  state = normalize(s);
+  save(); render();
+  box.value = '';
+  setMsg(msg, 'Loaded. Your progress is up to date on this device.', 'ok');
 });
 
 /* ---------- Boot ---------- */
